@@ -139,11 +139,11 @@
 
   ;; misc notes below
 
-  ;; pause handling the tcp info from electron
-  (reset! abort true) ; reset! to false before calling start-loop to restart
+  ;; stop handling the tcp info from electron by exiting loop
+  (reset! abort true) ; reset! to false before restarting
 
-  ;; completely stop handling tcp info from electron
-  (reset! traffic-loop nil)
+  ;; try to stop handling tcp info from electron by stopping thread
+  (future-cancel @traffic-loop)
 
   ;; thanks
   ;;
