@@ -1,0 +1,41 @@
+= Covalent
+
+This project contains bits to enable communication between a JVM or CLR Clojure project and an Electron app housing a https://github.com/Lokeh/punk[punk] UI.
+
+== Use with Arcadia Project
+
+1. Copy the 3 subdirectories (covalent, frame, and punk) of the src directory into the (Arcadia-fied) Unity project's Asset directory.
+
+2. Start the Unity project
+
+3. Connect to the Arcadia socket repl.  Host might be ::1 or 127.0.0.1, but the port is likely 37220
+
+4. See the instructions at the end of covalent/core.cljc, but ignore the bits about deps.edn
+
+== Use with CLR Clojure Project
+
+1. Copy the 3 subdirectories (covalent, frame, and punk) of the src directory into a directory that will end up on CLOJURE_LOAD_PATH (basically alongside top directories containing source for the existing CLR Clojure project)
+
+2. Start and connect to a CLR Clojure socket repl.
+
+3. See the instructions at the end of covalent/core.cljc, but ignore the bits about deps.edn
+
+== Use with JVM Clojure Project
+
+1. Copy the covalent subdirectory (of the src directory) into a directory on the classpath of the JVM Clojure project.
+
+2. See the instructions at the end of covalent/core.cljc
+
+== Acknowledgments
+
+Thanks to (at least) the following folks:
+
+* darwin
+* dmiller
+* kajism
+* Lokeh
+* Saikyun
+* stuarthalloway
+* theophilusx
+* thheller
+
