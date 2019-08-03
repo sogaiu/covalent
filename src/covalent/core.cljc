@@ -6,8 +6,33 @@
    [frame.core :as fc]
    [punk.core :as pc])
   (:import
-   #?(:clj [java.net Socket SocketTimeoutException]
-      :cljr [System.Net.Sockets TcpClient])))
+   #?@(:clj [[java.net Socket SocketTimeoutException]
+             [java.util Base64]]
+       :cljr [[System.Net.Sockets TcpClient]])))
+
+#?(:clj
+   (do
+     (defn b64encode [a-str]
+       (->> a-str
+            .getBytes
+            (.encodeToString (Base64/getEncoder))))
+
+      (defn b64decode [encoded-str]
+        (->> encoded-str
+             (.decode (Base64/getDecoder))
+             String.)))
+
+   :cljr
+   (do
+     (defn b64encode [a-str]
+       (->> a-str
+            (.GetBytes System.Text.Encoding)
+            System.Convert/ToBase64String))
+
+     (defn b64decode [encoded-str]
+       (->> encoded-str
+            System.Convert/FromBase64String
+            (.GetString System.Text.Encoding/UTF8)))))
 
 (defn tcp-connect
   [host port]
@@ -47,25 +72,44 @@
   [conn]
   (while (not @abort)
     (let [a-line (get-line conn)]
+      ;; XXX
+      (println (str "received: " a-line))
       (when a-line
-        (let [read-value (ce/read-string
+        (let [partly (b64decode a-line)
+              ;; XXX
+              _ (println (str "partly: " partly))
+              read-value (ce/read-string
                           {
                            #_#_:readers {}
                            :default tagged-literal}
-                          a-line)]
+                          partly)]
+          ;; XXX
+          (println (str "read-value: " read-value))
+          (println (str "vector?: " (vector? read-value)))
           (pc/dispatch read-value))))))
 
 (defonce traffic-loop
   (atom nil))
 
+(defn m-encode
+  [value]
+  (b64encode (pr-str value)))
+
+(defn setup-emit-handler
+  [conn]
+  (fc/reg-fx
+    pc/frame :emit
+    (fn emit [v]
+      (let [encoded (m-encode v)]
+        ;; XXX
+        (println (str "encoded: " encoded))
+        (send-msg conn encoded)))))
+
 (defn start-punk
   [host port]
   (let [conn (tcp-connect host port)]
     ;; preparing "frame" to handle the :emit effect
-    (fc/reg-fx
-      pc/frame :emit
-      (fn emit [v]
-        (send-msg conn (pr-str v))))
+    (setup-emit-handler conn)
     ;; prepare tap> to trigger dispatching
     (pc/add-taps!)
     ;; handle info from the electron app that comes via tcp
@@ -77,12 +121,24 @@
 (comment
 
   ;; 0. prepare the necessary bits for the electron app + punk.ui by
-  ;;    first cloning the following repositories:
+  ;;    obtaining the necessary bits:
   ;;
-  ;;      https://github.com/Lokeh/punk
+  ;;    clone the following repositories:
+  ;;
+  ;;      https://github.com/sogaiu/punk
   ;;      https://github.com/sogaiu/shadow-cljs-electron-react
+  ;;      https://github.com/sogaiu/covalent (the current file is part of this)
   ;;
-  ;;    for the latter, switch to the tcp-server-in-renderer branch by:
+  ;;    for the punk repository, switch to the electron branch by:
+  ;;
+  ;;      cd punk
+  ;;      git checkout electron
+  ;;      cd ..
+  ;;
+  ;; 1. build the electron app + punk.ui by:
+  ;;
+  ;;    cd to shadow-cljs-electron-react, then switch to the
+  ;;    tcp-server-in-renderer branch by:
   ;;
   ;;       git checkout tcp-server-in-renderer
   ;;
@@ -110,22 +166,29 @@
   ;;    if all went well, the map {:a 1 :b 2} should be examinable in the
   ;;    punk.ui running in the electron app
 
-  ;; 3. choose a jvm clojure project to test with and add the following to
-  ;;    its deps.edn (in the :deps section):
+  ;; 3. prepare a clojure project for testing by:
   ;;
-  ;;      org.clojure/tools.logging {:mvn/version "0.5.0"}
-  ;;      punk/core {:local/root "../punk/core" :deps/manifest :deps}
+  ;;    for jvm clojure, choose a jvm clojure project to test with, and add the
+  ;;    following to its deps.edn (in the :deps section):
   ;;
-  ;;    put the file these instructions live in in a file named core.clj.
-  ;;    make a subdirectory named "covalent" (no quotes) in one of the
-  ;;    directories listed in the :paths section of the deps.edn.  put the
-  ;;    newly created core.clj file in the covalent directory.
-  
+  ;;      covalent {:local/root "../covalent" :deps/manifest :deps}
+  ;;
+  ;;    ensure the clojure project and the covalent directory are siblings
+  ;;
+  ;;    for clj clojure, choose a clj clojure project to test with, and from the
+  ;;    covalent/src directory, copy the 3 subdirectories (covalent, frame, and
+  ;;    punk) to a directory containing 1 or more directories that will end up
+  ;;    in the project's CLOJURE_LOAD_PATH.
+
   ;; 4. using a socket repl will likely be less problematic for the following,
-  ;;    so start a socket repl for the jvm clojure project and establish a
+  ;;    so start a socket repl for the clojure project and establish a
   ;;    connection to it.
 
   ;; 5. via the networked repl connection:
+
+  ;; preliminaries
+  (require '[covalent.core :as cc])
+  (in-ns 'covalent.core)
 
   ;; convenience function for set up (see source for details)
   (def conn
