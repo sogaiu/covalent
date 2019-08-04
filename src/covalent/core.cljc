@@ -130,41 +130,47 @@
 (comment
 
   ;; 0. prepare the necessary bits for the electron app + punk.ui by
-  ;;    obtaining the necessary bits:
-  ;;
-  ;;    clone the following repositories:
+  ;;    first cloning the following repositories:
   ;;
   ;;      https://github.com/sogaiu/punk
   ;;      https://github.com/sogaiu/shadow-cljs-electron-react
   ;;      https://github.com/sogaiu/covalent (the current file is part of this)
-  ;;
-  ;;    for the punk repository, switch to the electron branch by:
+
+  ;; 1. for the punk repository, switch to the electron branch by:
   ;;
   ;;      cd punk
   ;;      git checkout electron
+  ;;
+  ;;    go back to the parent directory:
+  ;;
   ;;      cd ..
+
+  ;; 2. for the shadow-cljs-electron-react repository, build the electron
+  ;;    app + punk.ui by:
   ;;
-  ;; 1. build the electron app + punk.ui by:
+  ;;      cd shadow-cljs-electron-react
   ;;
-  ;;    cd to shadow-cljs-electron-react, then switch to the
-  ;;    tcp-server-in-renderer branch by:
+  ;;    then switch to the tcp-server-in-renderer branch by:
   ;;
   ;;       git checkout tcp-server-in-renderer
   ;;
-  ;;    also follow its instructions to build the electron app:
+  ;;    obtain dependencies and build the electron app:
   ;;
   ;;      yarn
   ;;      yarn shadow-cljs watch main renderer
-  
-  ;; 1. start up the electron app with punk ui + tcp server in it:
+  ;;
+  ;;    in another terminal, start up the electron app with punk ui
   ;;
   ;;      yarn electron .
   ;;
   ;;    on arch linux derivatives, might need to do:
   ;;
   ;;      yarn electron . --no-sandbox
-
-  ;; 2. verify it's working by first connecting via nc:
+  ;;
+  ;;    the electron app should appear on screen and be listening on tcp
+  ;;    port 1338
+  ;;
+  ;;    verify it's working by first connecting via nc, telnet, or the like:
   ;;
   ;;      nc 127.0.0.1 1338
   ;;
@@ -173,27 +179,55 @@
   ;;      [:entry 0 {:value {:a 1 :b 2} :meta nil}]
   ;;
   ;;    if all went well, the map {:a 1 :b 2} should be examinable in the
-  ;;    punk.ui running in the electron app
+  ;;    electron app
+  ;;
+  ;;    return to the parent directory:
+  ;;
+  ;;      cd ..
 
-  ;; 3. prepare a clojure project for testing by:
+  ;; 3. prepare a clojure project for testing:
   ;;
   ;;    for jvm clojure, choose a jvm clojure project to test with, and add the
   ;;    following to its deps.edn (in the :deps section):
   ;;
   ;;      covalent {:local/root "../covalent" :deps/manifest :deps}
   ;;
-  ;;    ensure the clojure project and the covalent directory are siblings
-  ;;
-  ;;    for clj clojure, choose a clj clojure project to test with, and from the
+  ;;    for clr clojure, choose a clr clojure project to test with, and from the
   ;;    covalent/src directory, copy the 3 subdirectories (covalent, frame, and
   ;;    punk) to a directory containing 1 or more directories that will end up
   ;;    in the project's CLOJURE_LOAD_PATH.
+  ;;
+  ;;    in either case, ensure the clojure project and the covalent directory
+  ;;    are sibling directories
+  ;;
+  ;;    for an arcadia unity project, ensure the 3 subdirectories of
+  ;;    covalent/src (i.e. covalent, frame, and punk) are copied as
+  ;;    subdirectories of the Assets directory.
+  ;;
+  ;;    the arcadia project needs to be one that contains a clojure-clr that
+  ;;    has datafy, nav, and tap> -- this can be arranged but it's a bit
+  ;;    involved at the moment.  one way is to apply the instructions at:
+  ;;
+  ;;      https://github.com/arcadia-unity/clojure-clr/wiki/Update-&-Deployment
+  ;;
+  ;;    where in the "Set up" step, use the following branch and repository
+  ;;    in place of what's mentioned in the instructions:
+  ;;
+  ;;      https://github.com/sogaiu/clojure-clr/tree/unity-datafy-nav-tap
+  ;;
+  ;;    follow the "Building", "Testing Locally", and "Deploying into
+  ;;    Arcadia" instructions (but none of the subsequent ones).
+  ;;
+  ;;    this should produce an approriate Arcadia directory that can be
+  ;;    copied into the unity project's Assets directory
 
-  ;; 4. using a socket repl will likely be less problematic for the following,
+  ;; 4. try it out :)
+  ;;
+  ;;    using a socket repl will likely be less problematic for the following,
   ;;    so start a socket repl for the clojure project and establish a
   ;;    connection to it.
-
-  ;; 5. via the networked repl connection:
+  ;;
+  ;;    via the networked repl connection:
 
   ;; preliminaries
   (require '[covalent.core :as cc])
@@ -206,10 +240,24 @@
   ;; try sending a value to the electron app for viewing in punk.ui
   (tap> {:a 1 :b 2})
 
-  ;; a lower-level way to send the same info
+  ;; now take a look at the electron app and start clicking a bit :)
+
+  ;; other things to try:
+  (tap> #{:ant :bee :fox :elephant})
+  (tap> [2 3 5 7 9])
+  (tap> (atom {:bag #{:pencil :notepad :water-bottle}
+               :position :standing
+               :mind [:tune :chatter]}))
+  (tap> (Exception. "i am an exception"))
+
+  ;; things known to cause problems:
+  (tap> *ns*)
+  (tap> #'tcp-connect)
+
+  ;; a lower-level way to send info
   (send-msg conn "[:entry 0 {:value {:a 1 :b 2} :meta nil}]")
 
-  ;; misc notes below
+  ;; following possibly of interest...
 
   ;; stop handling the tcp info from electron by exiting loop
   (reset! abort true) ; reset! to false before restarting
