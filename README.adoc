@@ -4,27 +4,34 @@ This project contains bits to enable communication between a JVM or CLR Clojure 
 
 == Use with Arcadia Project
 
-1. Copy the 3 subdirectories (covalent, frame, and punk) of the src directory into the (Arcadia-fied) Unity project's Asset directory.
+1. See and follow the instructions at the end of src/covalent/core.cljc, but be sure to start the Unity project before trying to connect to the Arcadia socket repl.
 
-2. Start the Unity project
-
-3. Connect to the Arcadia socket repl.  Host might be ::1 or 127.0.0.1, but the port is likely 37220
-
-4. See the instructions at the end of src/covalent/core.cljc
+2. For connecting to the Arcadia socket repl, host might be ::1 or 127.0.0.1, but the port is likely 37220
 
 == Use with CLR Clojure Project
 
-1. Copy the 3 subdirectories (covalent, frame, and punk) of the src directory into a directory that will end up on CLOJURE_LOAD_PATH (basically alongside top directories containing source for the existing CLR Clojure project)
+1. See and follow the instructions at the end of src/covalent/core.cljc
 
-2. Start and connect to a CLR Clojure socket repl.
+2. For starting a CLR Clojure socket repl in a *nix like environment, one way is:
 
-3. See the instructions at the end of src/covalent/core.cljc
+```
+Clojure.Main.exe \
+  -e "(do (require 'clojure.core.server) \
+        (clojure.core.server/start-server \
+          {:name \"socket-repl\" \
+           :port 8991 \
+           :accept 'clojure.main/repl \
+           :address \"localhost\"}))" \
+  -r
+```
+
+That should result in a socket repl listening on port 8991.  The host may be ::1 or 127.0.0.1 depending on your platform.
 
 == Use with JVM Clojure Project
 
-1. Copy the covalent subdirectory (of the src directory) into a directory on the classpath of the JVM Clojure project.
+1. See and follow the instructions at the end of src/covalent/core.cljc
 
-2. See the instructions at the end of src/covalent/core.cljc
+2. Relax that the tooling has been polished over the years...
 
 == Acknowledgments
 
