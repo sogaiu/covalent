@@ -10,7 +10,7 @@ This project contains bits to enable communication between a JVM or CLR Clojure 
 
 3. Connect to the Arcadia socket repl.  Host might be ::1 or 127.0.0.1, but the port is likely 37220
 
-4. See the instructions at the end of covalent/core.cljc, but ignore the bits about deps.edn
+4. See the instructions at the end of covalent/core.cljc
 
 == Use with CLR Clojure Project
 
@@ -18,7 +18,7 @@ This project contains bits to enable communication between a JVM or CLR Clojure 
 
 2. Start and connect to a CLR Clojure socket repl.
 
-3. See the instructions at the end of covalent/core.cljc, but ignore the bits about deps.edn
+3. See the instructions at the end of covalent/core.cljc
 
 == Use with JVM Clojure Project
 
