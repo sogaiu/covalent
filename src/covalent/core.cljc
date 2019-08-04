@@ -10,6 +10,15 @@
              [java.util Base64]]
        :cljr [[System.Net.Sockets TcpClient]])))
 
+(def debug
+  ;; for debug output, set to true
+  (atom false))
+
+(defn log-if-debug
+  [msg]
+  (when @debug
+    (println msg)))
+
 #?(:clj
    (do
      (defn b64encode [a-str]
@@ -73,19 +82,19 @@
   (while (not @abort)
     (let [a-line (get-line conn)]
       ;; XXX
-      (println (str "received: " a-line))
+      (log-if-debug (str "received: " a-line))
       (when a-line
         (let [partly (b64decode a-line)
               ;; XXX
-              _ (println (str "partly: " partly))
+              _ (log-if-debug (str "partly: " partly))
               read-value (ce/read-string
                           {
                            #_#_:readers {}
                            :default tagged-literal}
                           partly)]
           ;; XXX
-          (println (str "read-value: " read-value))
-          (println (str "vector?: " (vector? read-value)))
+          (log-if-debug (str "read-value: " read-value))
+          (log-if-debug (str "vector?: " (vector? read-value)))
           (pc/dispatch read-value))))))
 
 (defonce traffic-loop
@@ -102,7 +111,7 @@
     (fn emit [v]
       (let [encoded (m-encode v)]
         ;; XXX
-        (println (str "encoded: " encoded))
+        (log-if-debug (str "encoded: " encoded))
         (send-msg conn encoded)))))
 
 (defn start-punk
