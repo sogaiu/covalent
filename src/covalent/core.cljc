@@ -35,7 +35,7 @@
    (do
      (defn b64encode [a-str]
        (->> a-str
-            (.GetBytes System.Text.Encoding)
+            (.GetBytes System.Text.Encoding/UTF8)
             System.Convert/ToBase64String))
 
      (defn b64decode [encoded-str]
