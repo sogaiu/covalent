@@ -3,6 +3,7 @@
      (:require
       [cljs.tagged-literals]
       [cljs.tools.reader.edn :as ctre]
+      [clojure.core.async :as cca]
       [covalent.log :as cl]
       [frame.core :as fc]
       [punk.core :as pc]))
@@ -13,84 +14,74 @@
 #?(:cljs
    (do
 
-     ;; XXX: official rn docs don't use addEventListener
-     #_(defn connect-old
-       [ws-url on-msg]
-       (let [ws (js/WebSocket. ws-url)]
-         (.addEventListener ws "error"
-           (fn [err]
-             (js/console.log (str "ws error message: " (.-message err)))))
-         (.addEventListener ws "close"
-           (fn [ev]
-             (js/console.log (str "ws close code: " (.-code ev)))
-             (js/console.log (str "ws close reason: " (.-reason ev)))))
-         (.addEventListener ws "open"
-           (fn []
-             (js/console.log "ws open")))
-         (.addEventListener ws "message"
-           (fn [ev]
-             (js/console.log (str "ws message data: " (.-data ev)))
-             (on-msg (.-data ev))))
-         {:ws ws}))
+     (defonce in-chan
+       (cca/chan))
+
+     (defonce out-chan
+       (cca/chan))
+
+     (defonce err-chan
+       (cca/chan))
 
      (defn connect
-       [ws-url on-msg]
+       [ws-url]
        (let [ws (js/WebSocket. ws-url)]
          (set! (.-onerror ws)
-           (fn [err]
-             (js/console.log (str "ws error message: " (.-message err)))))
+           (fn [ev]
+             (cl/log-if-debug (str "ws error message: " (.-message ev)))
+             (cca/put! err-chan [:onerror ev])))
          (set! (.-onclose ws)
            (fn [ev]
-             (js/console.log (str "ws close code: " (.-code ev)))
-             (js/console.log (str "ws close reason: " (.-reason ev)))))
+             (cl/log-if-debug (str "ws close code: " (.-code ev)))
+             (cl/log-if-debug (str "ws close reason: " (.-reason ev)))
+             (cca/put! err-chan [:onclose ev])))
          (set! (.-onopen ws)
-           (fn []
-             (js/console.log "ws open")))
+           (fn [ev]
+             (cl/log-if-debug "ws open")
+             (cca/put! err-chan [:onopen ev])))
          (set! (.-onmessage ws)
            (fn [ev]
-             (js/console.log (str "ws message data: " (.-data ev)))
-             (on-msg (.-data ev))))
+             (cl/log-if-debug (str "ws message data: " (.-data ev)))
+             (cca/put! in-chan (.-data ev))))
+         (cca/go-loop []
+           (let [ev (cca/<! out-chan)]
+             (.send ws ev)
+             (recur)))
          {:ws ws}))
-
-     ;; XXX: leads to error in electron + punk
-     #_(defn ping
-       [{:keys [ws]}]
-       (.ping ws))
-
-     (defn send-msg
-       [{:keys [ws]} message]
-       (.send ws message))
 
      (defn setup-emit-handler
        [conn]
        (fc/reg-fx
          pc/frame :emit
          (fn emit [v]
-           ;; XXX
            (cl/log-if-debug (str ":emit " v))
-           (send-msg conn (pr-str v)))))
-
-     (defn handle-message
-       [msg]
-       (let [read-value (ctre/read-string
-                         {:readers
-                          {'inst cljs.tagged-literals/read-inst
-                           'uuid cljs.tagged-literals/read-uuid
-                           'queue cljs.tagged-literals/read-queue}
-                          :default tagged-literal}
-                         msg)]
-         (pc/dispatch read-value)))
+           (cca/put! out-chan (pr-str v)))))
 
      (defn make-ws-url
        [host port endpoint]
        (str "ws://" host ":" port "/" endpoint))
 
+     (defn start-loop
+       []
+       (cca/go-loop []
+         (let [ev (cca/<! in-chan)
+               read-value (ctre/read-string
+                           {:readers
+                            {'inst cljs.tagged-literals/read-inst
+                             'uuid cljs.tagged-literals/read-uuid
+                             'queue cljs.tagged-literals/read-queue}
+                            :default tagged-literal}
+                           ev)]
+           (pc/dispatch read-value)
+           (recur))))
+
      (defn start-punk
        [host port]
-       (let [conn (connect (make-ws-url host port "ws")
-                    handle-message)]
+       (let [conn (connect (make-ws-url host port "ws"))]
          ;; preparing "frame" to handle the :emit effect
          (setup-emit-handler conn)
+         ;; handle messages from network
+         (start-loop) ; return value is channel
          ;; prepare tap> to trigger dispatching
          (pc/add-taps!)
          ;; capture this return value to work with send-msg or get-line
@@ -124,14 +115,5 @@
   ;; things known to cause problems:
   (tap> *ns*)
   (tap> #'start-punk)
-
-  ;; lower level stuff
-
-  (def conn
-    (connect "ws://localhost:9876/ws"
-      (fn [data]
-        (js/console.log data))))
-
-  (send-msg conn "[:entry 0 {:value {:a 1 :b 2} :meta nil}]")
 
   )
