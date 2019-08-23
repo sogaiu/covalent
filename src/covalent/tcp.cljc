@@ -121,6 +121,7 @@
        (fc/reg-fx
          pc/frame :emit
          (fn emit [v]
+           (cl/log-if-debug (str "v: " v))
            (let [encoded (m-encode v)]
              ;; XXX
              (cl/log-if-debug (str "encoded: " encoded))
