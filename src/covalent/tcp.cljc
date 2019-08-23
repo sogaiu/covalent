@@ -34,9 +34,6 @@
      (defn connect
        [host port]
        (let [client (Socket. host port)
-             ;; XXX: consider whether timeout is actually a good idea
-             timeout 5000
-             _ (.setSoTimeout client timeout)
              writer (cji/writer client)
              reader (cji/reader client)]
          {:client client
@@ -63,9 +60,6 @@
      (defn connect
        [host port]
        (let [client (TcpClient. host port)
-             ;; XXX: consider whether timeout is actually a good idea
-             timeout 5000
-             _ (set! (.-ReceiveTimeout client) (int timeout))
              writer (cci/text-writer (.-Client client))
              reader (cci/text-reader (.-Client client))]
          {:client client
