@@ -8,6 +8,7 @@
       [clojure.java.io :as cji]
       [covalent.base64 :as cb]
       [covalent.log :as cl]
+      [covalent.print :as cp]
       [frame.core :as fc]
       [punk.core :as pc])
      (:import
@@ -20,6 +21,7 @@
       [clojure.edn :as ce]
       [covalent.base64 :as cb]
       [covalent.log :as cl]
+      [covalent.print :as cp]
       [frame.core :as fc]
       [punk.core :as pc])
      (:import
@@ -81,19 +83,6 @@
      )
    )
 
-#?(:clj
-   (defn m-encode
-     [value]
-     (cb/encode (cp/pr-str value)))
-
-   ;; XXX: once covalent.print supports cljr merge with above
-   :cljr
-   (defn m-encode
-     [value]
-     (cb/encode (pr-str value)))
-
-   )
-
 #?(:cljs
    nil
 
@@ -124,6 +113,12 @@
 
      (defonce traffic-loop
        (atom nil))
+
+     (defn m-encode
+       [value]
+       (cb/encode
+        (binding [covalent.print/*make-readable* true]
+          (pr-str value))))
 
      (defn setup-emit-handler
        [conn]
