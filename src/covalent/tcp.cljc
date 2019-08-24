@@ -81,6 +81,19 @@
      )
    )
 
+#?(:clj
+   (defn m-encode
+     [value]
+     (cb/encode (cp/pr-str value)))
+
+   ;; XXX: once covalent.print supports cljr merge with above
+   :cljr
+   (defn m-encode
+     [value]
+     (cb/encode (pr-str value)))
+
+   )
+
 #?(:cljs
    nil
 
@@ -111,10 +124,6 @@
 
      (defonce traffic-loop
        (atom nil))
-
-     (defn m-encode
-       [value]
-       (cb/encode (pr-str value)))
 
      (defn setup-emit-handler
        [conn]
