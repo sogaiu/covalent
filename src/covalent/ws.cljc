@@ -5,6 +5,7 @@
       [cljs.tools.reader.edn :as ctre]
       [clojure.core.async :as cca]
       [covalent.log :as cl]
+      [covalent.print :as cp]
       [frame.core :as fc]
       [punk.core :as pc]))
 
@@ -55,7 +56,9 @@
          pc/frame :emit
          (fn emit [v]
            (cl/log-if-debug (str ":emit " v))
-           (cca/put! out-chan (pr-str v)))))
+           (let [v-str (binding [covalent.print/*make-readable* true]
+                         (pr-str v))]
+             (cca/put! out-chan v-str)))))
 
      (defn make-ws-url
        [host port endpoint]

@@ -30,4 +30,17 @@
 
      )
 
+   :cljs
+   (extend-protocol IPrintWithWriter
+     Var
+     (-pr-writer [a writer opts]
+       (if covalent.print/*make-readable*
+         (do
+           (-write writer "#object[cljs.core.Var \"")
+           (-write writer (str a))
+           (-write writer "\"]"))
+         (do
+           (-write writer "#'")
+           (pr-writer (.-sym a) writer opts)))))
+
    )
